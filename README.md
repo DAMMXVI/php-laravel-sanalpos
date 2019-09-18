@@ -34,7 +34,7 @@ class XbankPayment{
         get3D();
 	}
     
-	public function get3D()
+	public function get3D() //Bankanın verdiği mpiserviceurl'ine mevcut bilgilerin curl ile gönderiip sonuç xml'inin üretilmesi fonksiyonu
 	{
 		$Rnd = microtime(); //Rastgele üretilen bir değer
 		$TxnType = $this->TxnType;  //işlem tipi
