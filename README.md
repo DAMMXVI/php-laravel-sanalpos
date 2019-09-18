@@ -1,7 +1,7 @@
 # Teb Sanal Pos Entegrasyon Modülü PHP Laravel
 Laravel tabanlı yazdığım  sanal pos kütüphanesi. 3D Secure modüllü olarak hazırlanmıştır.
 
-## Kurulum
+### Kurulum
 <?php
 
 namespace App\Http\Libraries;
