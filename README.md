@@ -7,10 +7,10 @@ Laravel tabanlı yazdığım  sanal pos kütüphanesi. 3D Secure modüllü olara
 
 namespace App\Http\Libraries;
 
-class AkbankPayment{
+class XbankPayment{
 
-	private $MerchantId, $VerifyEnrollmentRequestId, $PurchaseAmount, $InstallmentCount, $ExpiryDate, $Cavv, $Lang;
-	private $Pan, $BrandName, $SuccessURL, $FailureURL, $Currency, $Year, $Month, $MPIServiceUrl, $TxnType, $SecureType;
+	private $MerchantId, $PurchaseAmount, $InstallmentCount, $ExpiryDate, $Cavv, $Lang, $MerchantPassword;
+	private $Pan, $SuccessURL, $FailureURL, $Currency, $Year, $Month, $MPIServiceUrl, $TxnType, $SecureType;
 
 	public function postProc(Request $request)
 	{
@@ -38,15 +38,15 @@ class AkbankPayment{
 	{
 		$Rnd = microtime(); //Rastgele üretilen bir değer
 		$TxnType = $this->TxnType;  //işlem tipi
-		$Hash = $this->generateHashTest($Rnd,$TxnType);
+		$Hash = $this->generateHashTest($Rnd,$TxnType); //Oluşturulan hash kodu
 
 		$ch = curl_init();
 		curl_setopt($ch,CURLOPT_URL,$this->MPIServiceUrl); //Website içeriği getirilecek URL adresi
 		curl_setopt($ch,CURLOPT_POST,TRUE);		//Post onayı
 		curl_setopt($ch,CURLOPT_SSL_VERIFYPEER,FALSE); //cURL’un eş sertifikasını doğrulaması için FALSE , değilse TRUE olmalıdır.
 		curl_setopt($ch,CURLOPT_HTTPHEADER,array("Content-Type"=>"application/x-www-form-urlencoded")); //HTTP başlık alanlarını içeren bir dizi değerin tanımlanmasını sağlar.
-		curl_setopt($ch,CURLOPT_RETURNTRANSFER,TRUE);	//true olarak setlenmesi durumunda çıktılar string olarak sitede listelenecektir.
-		curl_setopt($ch,CURLOPT_POSTFIELDS,"Fismi=Alper DENİZ&clientid=".$this->MerchantId."&storetype=".$this->SecureType."&hash=".$Hash."&islemtipi=".$TxnType."&amount=".$this->PurchaseAmount."&currency=".$this->Currency."&oid=".$this->VerifyEnrollmentRequestId."&okUrl=".$this->SuccessURL."&failUrl=".$this->FailureURL."&lang=".$this->Lang."&rnd=".$Rnd."&pan=".$this->Pan."&Ecom_Payment_Card_ExpDate_Year=".$this->Year."&Ecom_Payment_Card_ExpDate_Month=".$this->Month."&cv2=".$this->Cavv."&CardType=".$this->BrandName."&taksit=".$this->InstallmentCount);
+		curl_setopt($ch,CURLOPT_RETURNTRANSFER,TRUE);//true olarak setlenmesi durumunda çıktılar string olarak sitede listelenecektir.
+		curl_setopt($ch,CURLOPT_POSTFIELDS,"clientid=".$this->MerchantId."&storetype=".$this->SecureType."&hash=".$Hash."&islemtipi=".$TxnType."&amount=".$this->PurchaseAmount."&currency=".$this->Currency."&okUrl=".$this->SuccessURL."&failUrl=".$this->FailureURL."&lang=".$this->Lang."&rnd=".$Rnd."&pan=".$this->Pan."&Ecom_Payment_Card_ExpDate_Year=".$this->Year."&Ecom_Payment_Card_ExpDate_Month=".$this->Month."&cv2=".$this->Cavv."&taksit=".$this->InstallmentCount);
 		//Bir HTTP POST işleminde gönderilecek verinin tamamını deger olarak olır. 
 		$resultXml = curl_exec($ch);	//işlem isteği mpi'a gönderiliyor.
 		print_r($resultXml);
