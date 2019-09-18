@@ -47,14 +47,17 @@ class XbankPayment{
 		curl_setopt($ch,CURLOPT_SSL_VERIFYPEER,FALSE); //cURL’un eş sertifikasını doğrulaması için FALSE , değilse TRUE olmalıdır.
 		curl_setopt($ch,CURLOPT_HTTPHEADER,array("Content-Type"=>"application/x-www-form-urlencoded")); 
 		//HTTP başlık alanlarını içeren bir dizi değerin tanımlanmasını sağlar.
+		
 		curl_setopt($ch,CURLOPT_RETURNTRANSFER,TRUE);
 		//true olarak setlenmesi durumunda çıktılar string olarak sitede listelenecektir.
+		
 		curl_setopt($ch,CURLOPT_POSTFIELDS,"clientid=".$this->MerchantId."&storetype=".
 		$this->SecureType."&hash=".$Hash."&islemtipi=".$TxnType."&amount=".$this->PurchaseAmount.
 		"&currency=".$this->Currency."&okUrl=".$this->SuccessURL."&failUrl=".$this->FailureURL.
 		"&lang=".$this->Lang."&rnd=".$Rnd."&pan=".$this->Pan."&Ecom_Payment_Card_ExpDate_Year=".
 		$this->Year."&Ecom_Payment_Card_ExpDate_Month=".$this->Month."&cv2=".$this->Cavv."&taksit=".$this->InstallmentCount);
 		//Bir HTTP POST işleminde gönderilecek verinin tamamını deger olarak olır. 
+		
 		$resultXml = curl_exec($ch);	//işlem isteği mpi'a gönderiliyor.
 		print_r($resultXml);
 		exit;		
