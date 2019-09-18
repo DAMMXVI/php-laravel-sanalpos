@@ -2,83 +2,60 @@
 Laravel tabanlı yazdığım  sanal pos kütüphanesi. 3D Secure modüllü olarak hazırlanmıştır.
 
 ## Kurulum
-namespace App\Http\Controllers;
-use Illuminate\Http\Request;
-use App\Http\Requests;
-use App\Http\Controllers\Controller;
+<?php
 
-//Library dahil ediliyor
-use App\Libraries\SanalPos\est3dModel;
-//Library dahil ediliyor
+namespace App\Http\Libraries;
 
-class TestController extends Controller
-{
-    public function __construct()
-    {
-        parent::__construct();       
-        $this->est3dModel=new est3dModel();        
-    }
-    public function postProcess(Request $request)
-    {
-        $price = 100;
-        $orders_no = "SİP NO";
-        $webpos_bank['cc_owner'] = $request->firstname;
-        $webpos_bank['cc_number'] = $number;
-        $webpos_bank['cc_cvv2'] = $request->cvv;
-        $webpos_bank['cc_expire_date_month'] = $month;
-        $webpos_bank['cc_expire_date_year'] = $request->expiryYear;
-        $webpos_bank['cc_type'] = $request->card_type;
-        $webpos_bank["bank_id"] = $request->webpos_bank_id;
-        $webpos_bank['customer_ip'] = ip();
-        $webpos_bank['instalment'] = $request->installment;
-        $webpos_bank['success_url'] = url('test/callback'); //bank will return here if payment successfully finishes
-        $webpos_bank['fail_url'] = url('test/callback'); //bank will return here if payment fails;
-        $webpos_bank['order_id'] = $orders_no;
-        $webpos_bank['total'] = $price;
-        $webpos_bank['mode'] = "live";
-        $webpos_bank['order_info'] = "";
-        $webpos_bank['products'] = "";
-        $method_response = $this->est3dModel->methodResponse($webpos_bank);
-       
-        if (isset($method_response['form'])) {
-            $json['form'] = $method_response['form'];
-        } else if (isset($method_response['error'])) {
-            $message = (isset($method_response['message'])) ? $method_response['message'] : '';           
-            $json['error'] = $method_response['error'].$message;
-        }
-        return json_encode($json);
-    }
-    public function anyCallback(Request $req)
-    {
-        $bank_response = $req->all();
-        $webpos_bank=[];//Ekstra değer göndermek için
-        
-        //Para aktarımını başlatıyoruz
-        $method_response = $this->est3dModel->bankResponse($bank_response, $webpos_bank);
-        
-        $orders_no = $bank_response["oid"];
+class AkbankPayment{
 
-        if(isset($bank_response["taksit"]) and !empty($bank_response["taksit"])){
-            $instalment = $bank_response["taksit"];
-            $instalment=($instalment=="") ? 0 : $instalment;
-        }else{
-            $instalment = 0;
-        }        
-        if ($method_response['result'] == 1) {
-            $message = $method_response['message'] . $banka;
-            $price=$bank_response["amount"];//Çekilen tutar- Kontrol için kullanılabilir
-            
-            //Siparişi kaydet
-            //Mail gönder
-            //Sepeti boşalt 
-            
-            $data['continue'] = url('test/success/' . $orders_no);
-            $data['message'] = $method_response['message'];
-            return Redirect::to("test/success/" . $orders_no)->with("data", $data);            
-        } else {            
-            $message = $method_response['message'];                        
-            $price = $bank_response["amount"];//Log için tutulabilir            
-            return Redirect::to("kart-sayfasi-buraya")->with("error", $message);            
-        }
-    }
+	private $MerchantId, $VerifyEnrollmentRequestId, $PurchaseAmount, $InstallmentCount, $ExpiryDate, $Cavv, $Lang;
+	private $Pan, $BrandName, $SuccessURL, $FailureURL, $Currency, $Year, $Month, $MPIServiceUrl, $TxnType, $SecureType;
+
+	public function postProc(Request $request)
+	{
+		$this->MPIServiceUrl = 'bankadan alinacak mpiserviceurl'; 
+		$this->SuccessURL = '3D onayı işlemi başarılıysa dönülecek web sayfası';
+		$this->FailureURL = '3D onayı işlemi başarısızsa dönülecek web sayfası';
+		$this->Currency = '949'; //949 ₺ para birimini göstermektedir.
+		$this->MerchantId = 'bankadan verilen şube id';
+		$this->MerchantPassword = 'bankadan verilen şube şifresi';
+		$this->TxnType = 'Auth';    //İşlem tipi
+		$this->SecureType = '3d_pay'; //işlem tipi 3d--3d_pay--3d_hosting
+		$this->Lang = 'tr';
+
+		$this->Pan = $request->CardNumber();                //Kart numarası (**** **** **** ****)
+		$this->ExpiryDate = $request->ExpriyDate();         //Kart son kullanım tarihi (ay + yıl)
+		$this->Cavv = $request->cardcvc;                    //Kart cvv numarası
+		$this->Year = $request->cardexpirationyear;         //Kart son kullanım tarihi (yıl)
+		$this->Month = $request->cardexpirationmonth;       //Kart son kullanım tarihi (ay)
+		$this->PurchaseAmount = $request->price;	        //Ödeme miktarı
+		$this->InstallmentCount = $request->installment;    //Taksit sayısı
+        get3D();
+	}
+    
+	public function get3D()
+	{
+		$Rnd = microtime(); //Rastgele üretilen bir değer
+		$TxnType = $this->TxnType;  //işlem tipi
+		$Hash = $this->generateHashTest($Rnd,$TxnType);
+
+		$ch = curl_init();
+		curl_setopt($ch,CURLOPT_URL,$this->MPIServiceUrl); //Website içeriği getirilecek URL adresi
+		curl_setopt($ch,CURLOPT_POST,TRUE);		//Post onayı
+		curl_setopt($ch,CURLOPT_SSL_VERIFYPEER,FALSE); //cURL’un eş sertifikasını doğrulaması için FALSE , değilse TRUE olmalıdır.
+		curl_setopt($ch,CURLOPT_HTTPHEADER,array("Content-Type"=>"application/x-www-form-urlencoded")); //HTTP başlık alanlarını içeren bir dizi değerin tanımlanmasını sağlar.
+		curl_setopt($ch,CURLOPT_RETURNTRANSFER,TRUE);	//true olarak setlenmesi durumunda çıktılar string olarak sitede listelenecektir.
+		curl_setopt($ch,CURLOPT_POSTFIELDS,"Fismi=Alper DENİZ&clientid=".$this->MerchantId."&storetype=".$this->SecureType."&hash=".$Hash."&islemtipi=".$TxnType."&amount=".$this->PurchaseAmount."&currency=".$this->Currency."&oid=".$this->VerifyEnrollmentRequestId."&okUrl=".$this->SuccessURL."&failUrl=".$this->FailureURL."&lang=".$this->Lang."&rnd=".$Rnd."&pan=".$this->Pan."&Ecom_Payment_Card_ExpDate_Year=".$this->Year."&Ecom_Payment_Card_ExpDate_Month=".$this->Month."&cv2=".$this->Cavv."&CardType=".$this->BrandName."&taksit=".$this->InstallmentCount);
+		//Bir HTTP POST işleminde gönderilecek verinin tamamını deger olarak olır. 
+		$resultXml = curl_exec($ch);	//işlem isteği mpi'a gönderiliyor.
+		print_r($resultXml);
+		exit;		
+	}	
+    public function generateHashTest($rnd,$txnType) //Banka tarafından gönderilecek hash ile doğrulama yapmak için hash oluşturulması
+	{ 
+		$oid = $this->VerifyEnrollmentRequestId;       
+		$hashstr = $this->MerchantId.$oid.$this->PurchaseAmount.$this->SuccessURL.$this->FailureURL.$txnType.$this->InstallmentCount.$rnd.$this->MerchantPassword;
+        $hash = base64_encode(pack('H*',sha1($hashstr))); 
+		return $hash;
+	}
 }
