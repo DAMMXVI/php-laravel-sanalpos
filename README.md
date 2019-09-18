@@ -1,4 +1,4 @@
-# Teb Sanal Pos Entegrasyon Modülü PHP Laravel
+# Sanal Pos Entegrasyon Modülü PHP Laravel
 Laravel tabanlı yazdığım  sanal pos kütüphanesi. 3D Secure modüllü olarak hazırlanmıştır.
 
 ## Kurulum
@@ -59,7 +59,8 @@ class XbankPayment{
 		print_r($resultXml);
 		exit;		
 	}	
-    public function generateHashTest($rnd,$txnType) //Banka tarafından gönderilecek hash ile doğrulama yapmak için hash oluşturulması
+    	public function generateHashTest($rnd,$txnType) 
+	//Banka tarafından gönderilecek hash ile doğrulama yapmak için hash oluşturulması
 	{ 
 		$oid = $this->VerifyEnrollmentRequestId;       
 		$hashstr = $this->MerchantId.$oid.$this->PurchaseAmount.$this->SuccessURL.$this->FailureURL.
